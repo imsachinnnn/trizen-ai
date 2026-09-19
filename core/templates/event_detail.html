@@ -89,26 +89,23 @@
     <!-- Assign Member Control (Admin Only) -->
     {% if is_admin %}
       <div class="pt-3 border-t border-zinc-800/80">
-        <form action="{% url 'event_member_add' pk=event.pk %}" method="post" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 max-w-2xl">
-          {% csrf_token %}
-          
-          {% if available_users %}
-            <select name="user_id" class="px-3.5 py-2 bg-zinc-900 border border-zinc-800 rounded-md text-xs text-white focus:outline-none focus:border-zinc-500 sm:w-1/2">
+        {% if available_users %}
+          <form action="{% url 'event_member_add' pk=event.pk %}" method="post" class="flex items-center gap-2.5 max-w-md">
+            {% csrf_token %}
+            <select name="user_id" required class="px-3.5 py-2 bg-zinc-900 border border-zinc-800 rounded-md text-xs text-white focus:outline-none focus:border-zinc-500 flex-1">
               <option value="">Select registered user...</option>
               {% for u in available_users %}
                 <option value="{{ u.id }}">{{ u.name|default:u.email }} ({{ u.get_role_display }})</option>
               {% endfor %}
             </select>
-            <span class="text-xs text-zinc-500 text-center font-mono sm:inline hidden">OR</span>
-          {% endif %}
-
-          <input type="email" name="email" placeholder="Enter member email (e.g. photographer@trizen.com)..." class="px-3.5 py-2 bg-zinc-900 border border-zinc-800 rounded-md text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 flex-1">
-
-          <button type="submit" class="px-4 py-2 bg-white text-zinc-950 font-semibold text-xs rounded-md hover:bg-zinc-200 transition flex items-center justify-center gap-1.5 shrink-0">
-            <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
-            <span>Assign Member</span>
-          </button>
-        </form>
+            <button type="submit" class="px-4 py-2 bg-white text-zinc-950 font-semibold text-xs rounded-md hover:bg-zinc-200 transition flex items-center justify-center gap-1.5 shrink-0">
+              <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+              <span>Assign Member</span>
+            </button>
+          </form>
+        {% else %}
+          <p class="text-xs text-zinc-500 italic">All registered users are currently assigned to this event.</p>
+        {% endif %}
       </div>
     {% endif %}
   </div>
