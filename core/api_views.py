@@ -151,3 +151,48 @@ class GalleryVerifyPINAPIView(APIView):
                 {"success": False, "error": "Incorrect PIN. Access denied."},
                 status=status.HTTP_401_UNAUTHORIZED
             )
+
+
+class PhotoDeleteAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, event_id):
+        event = get_object_or_404(Event, id=event_id)
+        if not is_admin_user(request.user):
+            return Response(
+                {"error": "Only Admin leads can delete photos."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        photo_ids = request.data.get('photo_ids', [])
+        if not photo_ids:
+            return Response(
+                {"error": "No photo_ids provided for deletion."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        photos = Photo.objects.filter(id__in=photo_ids, event=event)
+        deleted_count = 0
+
+        for photo in photos:
+            # Delete physical storage files
+            try:
+                if photo.image:
+                    photo.image.delete(save=False)
+                if photo.thumbnail:
+                    photo.thumbnail.delete(save=False)
+            except Exception:
+                pass
+
+            photo.delete()
+            deleted_count += 1
+
+        total_photos = event.photos.count()
+        total_selected = event.photos.filter(is_selected=True).count()
+
+        return Response({
+            "message": f"Successfully deleted {deleted_count} photos.",
+            "deleted_count": deleted_count,
+            "total_photos": total_photos,
+            "total_selected": total_selected,
+        }, status=status.HTTP_200_OK)

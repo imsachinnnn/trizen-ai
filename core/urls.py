@@ -25,5 +25,6 @@ urlpatterns = [
     # DRF API Endpoints
     path('api/events/<uuid:event_id>/photos/upload/', api_views.PhotoUploadAPIView.as_view(), name='api_photo_upload'),
     path('api/events/<uuid:event_id>/photos/select/', api_views.PhotoSelectionToggleAPIView.as_view(), name='api_photo_select'),
+    path('api/events/<uuid:event_id>/photos/delete/', api_views.PhotoDeleteAPIView.as_view(), name='api_photo_delete'),
     path('api/gallery/<slug:slug>/verify-pin/', api_views.GalleryVerifyPINAPIView.as_view(), name='api_gallery_verify_pin'),
 ]

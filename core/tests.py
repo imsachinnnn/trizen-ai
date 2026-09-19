@@ -189,3 +189,20 @@ class PhotoSharingTestCase(TestCase):
         self.client.login(username="team_a@trizen.com", password="TeamPass123!")
         res_auth = self.client.get(url)
         self.assertEqual(res_auth.status_code, 200)
+
+    # 10. Photo Deletion Authorization Test (Admin Only)
+    def test_admin_can_delete_photo_and_team_member_forbidden(self):
+        url = reverse("api_photo_delete", kwargs={"event_id": self.event.id})
+
+        # Team Member attempting to delete photo -> 403 Forbidden
+        self.client.login(username="team_a@trizen.com", password="TeamPass123!")
+        res_forbidden = self.client.post(url, {"photo_ids": [str(self.photo.id)]}, content_type="application/json")
+        self.assertEqual(res_forbidden.status_code, 403)
+        self.assertTrue(Photo.objects.filter(id=self.photo.id).exists())
+
+        # Admin attempting to delete photo -> 200 OK and photo removed
+        self.client.logout()
+        self.client.login(username="admin@trizen.com", password="AdminPass123!")
+        res_success = self.client.post(url, {"photo_ids": [str(self.photo.id)]}, content_type="application/json")
+        self.assertEqual(res_success.status_code, 200)
+        self.assertFalse(Photo.objects.filter(id=self.photo.id).exists())
