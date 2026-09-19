@@ -13,6 +13,7 @@ urlpatterns = [
     path('events/create/', views.event_create_view, name='event_create'),
     path('events/<uuid:pk>/', views.event_detail_view, name='event_detail'),
     path('events/<uuid:pk>/members/add/', views.event_member_add_view, name='event_member_add'),
+    path('events/<uuid:pk>/members/remove/', views.event_member_remove_view, name='event_member_remove'),
     path('events/<uuid:pk>/gallery/publish/', views.gallery_publish_view, name='gallery_publish'),
 
     # Public Customer Gallery

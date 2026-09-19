@@ -145,10 +145,46 @@ def event_member_add_view(request, pk):
     event = get_object_or_404(Event, pk=pk)
     if request.method == 'POST':
         user_id = request.POST.get('user_id')
+        email = request.POST.get('email', '').strip()
+
         if user_id:
             user_to_add = get_object_or_404(User, id=user_id)
             EventMember.objects.get_or_create(event=event, user=user_to_add)
-            messages.success(request, f"Added {user_to_add.name or user_to_add.email} to event.")
+            messages.success(request, f"Assigned {user_to_add.name or user_to_add.email} to event.")
+        elif email:
+            user_to_add = User.objects.filter(email__iexact=email).first()
+            if not user_to_add:
+                # Auto-create Team Member if email doesn't exist yet
+                user_to_add = User.objects.create_user(
+                    username=email,
+                    email=email,
+                    password="TeamPass123!",
+                    name=email.split('@')[0].capitalize(),
+                    role=User.Role.TEAM_MEMBER,
+                )
+                messages.info(request, f"Created new Team Member account for '{email}' (Password: TeamPass123!).")
+            EventMember.objects.get_or_create(event=event, user=user_to_add)
+            messages.success(request, f"Assigned {user_to_add.name or user_to_add.email} to event.")
+        else:
+            messages.error(request, "Please select a user or enter an email address.")
+
+    return redirect('event_detail', pk=pk)
+
+
+@login_required
+@admin_required
+def event_member_remove_view(request, pk):
+    event = get_object_or_404(Event, pk=pk)
+    if request.method == 'POST':
+        user_id = request.POST.get('user_id')
+        if user_id:
+            user_to_remove = get_object_or_404(User, id=user_id)
+            # Cannot remove creator/owner
+            if user_to_remove == event.created_by:
+                messages.error(request, "Cannot remove the event creator.")
+            else:
+                EventMember.objects.filter(event=event, user=user_to_remove).delete()
+                messages.success(request, f"Removed {user_to_remove.name or user_to_remove.email} from event.")
     return redirect('event_detail', pk=pk)
 
 

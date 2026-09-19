@@ -51,37 +51,67 @@
     {% endif %}
   </div>
 
-  <!-- Team Member Management Bar (Admin Only) -->
-  {% if is_admin %}
-    <div class="bg-[#18181b] border border-zinc-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  <!-- Team Member Management Bar -->
+  <div class="bg-[#18181b] border border-zinc-800 rounded-xl p-5 space-y-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
       <div class="flex items-center gap-2 text-xs">
-        <i data-lucide="user-check" class="w-4 h-4 text-zinc-400"></i>
-        <span class="font-semibold text-zinc-200">Assigned Team:</span>
-        <div class="flex flex-wrap items-center gap-1.5 ml-1">
-          {% for member in assigned_members %}
-            <span class="px-2.5 py-1 bg-zinc-900 border border-zinc-800 rounded text-[11px] text-zinc-300 font-medium">
-              {{ member.name|default:member.email }}
-            </span>
-          {% endfor %}
-        </div>
+        <i data-lucide="users" class="w-4 h-4 text-emerald-400"></i>
+        <span class="font-bold text-white text-sm">Assigned Photography Team</span>
+        <span class="text-zinc-500 font-mono text-[11px]">({{ assigned_members|length }} Members)</span>
       </div>
 
-      {% if available_users %}
-        <form action="{% url 'event_member_add' pk=event.pk %}" method="post" class="flex items-center gap-2">
-          {% csrf_token %}
-          <select name="user_id" class="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 focus:outline-none focus:border-zinc-500">
-            <option value="">Assign Team Member...</option>
-            {% for u in available_users %}
-              <option value="{{ u.id }}">{{ u.name|default:u.email }} ({{ u.get_role_display }})</option>
-            {% endfor %}
-          </select>
-          <button type="submit" class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-white rounded transition">
-            Add
-          </button>
-        </form>
+      {% if is_admin %}
+        <span class="text-[11px] text-zinc-400">Admins can assign, invite by email, or remove team members</span>
       {% endif %}
     </div>
-  {% endif %}
+
+    <!-- Assigned Member Badges with Remove Actions -->
+    <div class="flex flex-wrap items-center gap-2">
+      {% for member in assigned_members %}
+        <div class="inline-flex items-center gap-2 px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-zinc-200 font-medium">
+          <i data-lucide="user" class="w-3.5 h-3.5 text-zinc-400"></i>
+          <span>{{ member.name|default:member.email }}</span>
+          <span class="text-[10px] text-zinc-500 font-mono">({{ member.get_role_display }})</span>
+
+          {% if is_admin and member != event.created_by %}
+            <form action="{% url 'event_member_remove' pk=event.pk %}" method="post" class="inline">
+              {% csrf_token %}
+              <input type="hidden" name="user_id" value="{{ member.id }}">
+              <button type="submit" class="text-zinc-500 hover:text-red-400 p-0.5 ml-1 transition" title="Remove member from event">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
+            </form>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Assign Member Control (Admin Only) -->
+    {% if is_admin %}
+      <div class="pt-3 border-t border-zinc-800/80">
+        <form action="{% url 'event_member_add' pk=event.pk %}" method="post" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 max-w-2xl">
+          {% csrf_token %}
+          
+          {% if available_users %}
+            <select name="user_id" class="px-3.5 py-2 bg-zinc-900 border border-zinc-800 rounded-md text-xs text-white focus:outline-none focus:border-zinc-500 sm:w-1/2">
+              <option value="">Select registered user...</option>
+              {% for u in available_users %}
+                <option value="{{ u.id }}">{{ u.name|default:u.email }} ({{ u.get_role_display }})</option>
+              {% endfor %}
+            </select>
+            <span class="text-xs text-zinc-500 text-center font-mono sm:inline hidden">OR</span>
+          {% endif %}
+
+          <input type="email" name="email" placeholder="Enter member email (e.g. photographer@trizen.com)..." class="px-3.5 py-2 bg-zinc-900 border border-zinc-800 rounded-md text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500 flex-1">
+
+          <button type="submit" class="px-4 py-2 bg-white text-zinc-950 font-semibold text-xs rounded-md hover:bg-zinc-200 transition flex items-center justify-center gap-1.5 shrink-0">
+            <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+            <span>Assign Member</span>
+          </button>
+        </form>
+      </div>
+    {% endif %}
+  </div>
 
   <!-- Drag-and-Drop Photo Upload Area -->
   <div id="dropzone" class="border-2 border-dashed border-zinc-800 hover:border-zinc-600 bg-[#121215] rounded-xl p-8 text-center transition cursor-pointer relative group">
