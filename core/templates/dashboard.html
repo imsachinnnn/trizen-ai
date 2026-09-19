@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - TrizenAI Photo Sharing{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Header Section -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-zinc-800">
+    <div>
+      <h1 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
+        <span>Event Dashboard</span>
+        {% if is_admin %}
+          <span class="text-xs bg-emerald-950 text-emerald-400 border border-emerald-800 px-2.5 py-0.5 rounded font-mono font-medium">Admin Lead</span>
+        {% else %}
+          <span class="text-xs bg-zinc-800 text-zinc-300 border border-zinc-700 px-2.5 py-0.5 rounded font-mono font-medium">Team Member</span>
+        {% endif %}
+      </h1>
+      <p class="text-xs text-zinc-400 mt-1">
+        {% if is_admin %}
+          Manage events, review team uploads, select photos, and publish client galleries.
+        {% else %}
+          View assigned events, upload photographs, and track upload status.
+        {% endif %}
+      </p>
+    </div>
+
+    {% if is_admin %}
+      <a href="{% url 'event_create' %}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-zinc-950 text-xs font-semibold rounded-md hover:bg-zinc-200 transition shadow-sm">
+        <i data-lucide="plus" class="w-4 h-4"></i>
+        <span>Create Event</span>
+      </a>
+    {% endif %}
+  </div>
+
+  <!-- Events List -->
+  {% if events_data %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {% for item in events_data %}
+        <div class="bg-[#18181b] border border-zinc-800 rounded-xl p-5 hover:border-zinc-700 transition flex flex-col justify-between group">
+          
+          <div class="space-y-3">
+            <div class="flex items-start justify-between gap-2">
+              <h2 class="font-bold text-base text-white group-hover:text-zinc-100 transition line-clamp-1">
+                {{ item.gallery.title|default:item.event.title }}
+              </h2>
+              {% if item.gallery and item.gallery.is_published %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-950 text-emerald-400 border border-emerald-800 shrink-0">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  Published
+                </span>
+              {% else %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-zinc-900 text-zinc-400 border border-zinc-800 shrink-0">
+                  Draft
+                </span>
+              {% endif %}
+            </div>
+
+            {% if item.event.description %}
+              <p class="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
+                {{ item.event.description }}
+              </p>
+            {% endif %}
+
+            <div class="flex flex-wrap items-center gap-y-1.5 gap-x-3 text-[11px] text-zinc-500 pt-1">
+              {% if item.event.event_date %}
+                <div class="flex items-center gap-1">
+                  <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                  <span>{{ item.event.event_date }}</span>
+                </div>
+              {% endif %}
+
+              {% if item.event.location %}
+                <div class="flex items-center gap-1">
+                  <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                  <span>{{ item.event.location }}</span>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Bottom Action Bar -->
+          <div class="mt-6 pt-4 border-t border-zinc-800/80 flex items-center justify-between">
+            <div class="text-xs text-zinc-400 font-mono">
+              <span class="text-white font-semibold">{{ item.total_photos }}</span> Photos
+              <span class="text-zinc-600">•</span>
+              <span class="text-emerald-400 font-semibold">{{ item.selected_photos }}</span> Selected
+            </div>
+
+            <a href="{% url 'event_detail' pk=item.event.pk %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-medium text-zinc-200 rounded-md transition">
+              <span>Open Studio</span>
+              <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+            </a>
+          </div>
+
+          {% if item.gallery and item.gallery.is_published %}
+            <div class="mt-3 p-2.5 bg-zinc-900/90 border border-zinc-800 rounded-md text-[11px] flex items-center justify-between text-zinc-400">
+              <div class="truncate">
+                <span class="text-zinc-500">Public Link:</span>
+                <a href="{% url 'public_gallery' slug=item.gallery.slug %}" target="_blank" class="text-zinc-200 hover:underline font-mono">/gallery/{{ item.gallery.slug }}/</a>
+              </div>
+              <button onclick="navigator.clipboard.writeText(window.location.origin + '/gallery/{{ item.gallery.slug }}/'); showToast('Gallery URL copied to clipboard!')" class="text-zinc-400 hover:text-white ml-2 p-1" title="Copy Gallery Link">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          {% endif %}
+
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="text-center py-16 bg-[#18181b] border border-zinc-800 rounded-xl max-w-md mx-auto my-8">
+      <div class="w-12 h-12 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto mb-3 text-zinc-500">
+        <i data-lucide="folder-open" class="w-6 h-6"></i>
+      </div>
+      <h3 class="text-sm font-semibold text-white">No Events Found</h3>
+      <p class="text-xs text-zinc-400 mt-1 max-w-xs mx-auto">
+        {% if is_admin %}
+          Create your first photography event to start collaborating with your team.
+        {% else %}
+          You have not been assigned to any events yet. Ask an Admin to assign you.
+        {% endif %}
+      </p>
+      {% if is_admin %}
+        <a href="{% url 'event_create' %}" class="inline-flex items-center gap-2 px-4 py-2 mt-4 bg-white text-zinc-950 text-xs font-semibold rounded-md hover:bg-zinc-200 transition">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>Create Event</span>
+        </a>
+      {% endif %}
+    </div>
+  {% endif %}
+
+</div>
+{% endblock %}

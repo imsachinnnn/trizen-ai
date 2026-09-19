@@ -1,0 +1,416 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ event.title }} - Photo Studio{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Top Navigation & Title Bar -->
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-zinc-800">
+    <div class="space-y-1">
+      <div class="flex items-center gap-2 text-xs text-zinc-400">
+        <a href="{% url 'dashboard' %}" class="hover:text-white transition flex items-center gap-1">
+          <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+          <span>Dashboard</span>
+        </a>
+        <span>/</span>
+        <span class="text-zinc-200">Event Studio</span>
+      </div>
+      <h1 class="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
+        <span>{{ gallery.title|default:event.title }}</span>
+        {% if gallery and gallery.is_published %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-semibold bg-emerald-950 text-emerald-400 border border-emerald-800">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            Published Gallery
+          </span>
+        {% else %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-semibold bg-zinc-900 text-zinc-400 border border-zinc-800">
+            Draft Mode
+          </span>
+        {% endif %}
+      </h1>
+      <div class="flex flex-wrap items-center gap-3 text-xs text-zinc-400 pt-1">
+        {% if event.event_date %}
+          <span class="flex items-center gap-1"><i data-lucide="calendar" class="w-3.5 h-3.5 text-zinc-500"></i> {{ event.event_date }}</span>
+        {% endif %}
+        {% if event.location %}
+          <span class="flex items-center gap-1"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-zinc-500"></i> {{ event.location }}</span>
+        {% endif %}
+        <span class="flex items-center gap-1"><i data-lucide="users" class="w-3.5 h-3.5 text-zinc-500"></i> {{ assigned_members|length }} Team Members</span>
+      </div>
+    </div>
+
+    <!-- Admin Action Drawer Toggle -->
+    {% if is_admin %}
+      <div class="flex items-center gap-3 shrink-0">
+        <button onclick="togglePublishDrawer()" class="px-4 py-2.5 bg-white text-zinc-950 font-semibold text-xs rounded-md hover:bg-zinc-200 transition shadow-sm flex items-center gap-2">
+          <i data-lucide="globe" class="w-4 h-4"></i>
+          <span>Configure & Publish Gallery</span>
+        </button>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Team Member Management Bar (Admin Only) -->
+  {% if is_admin %}
+    <div class="bg-[#18181b] border border-zinc-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div class="flex items-center gap-2 text-xs">
+        <i data-lucide="user-check" class="w-4 h-4 text-zinc-400"></i>
+        <span class="font-semibold text-zinc-200">Assigned Team:</span>
+        <div class="flex flex-wrap items-center gap-1.5 ml-1">
+          {% for member in assigned_members %}
+            <span class="px-2.5 py-1 bg-zinc-900 border border-zinc-800 rounded text-[11px] text-zinc-300 font-medium">
+              {{ member.name|default:member.email }}
+            </span>
+          {% endfor %}
+        </div>
+      </div>
+
+      {% if available_users %}
+        <form action="{% url 'event_member_add' pk=event.pk %}" method="post" class="flex items-center gap-2">
+          {% csrf_token %}
+          <select name="user_id" class="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded text-xs text-zinc-300 focus:outline-none focus:border-zinc-500">
+            <option value="">Assign Team Member...</option>
+            {% for u in available_users %}
+              <option value="{{ u.id }}">{{ u.name|default:u.email }} ({{ u.get_role_display }})</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-xs font-medium text-white rounded transition">
+            Add
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <!-- Drag-and-Drop Photo Upload Area -->
+  <div id="dropzone" class="border-2 border-dashed border-zinc-800 hover:border-zinc-600 bg-[#121215] rounded-xl p-8 text-center transition cursor-pointer relative group">
+    <input type="file" id="fileInput" multiple accept="image/jpeg,image/png,image/webp" class="hidden">
+    <div class="space-y-3 pointer-events-none">
+      <div class="w-12 h-12 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-400 group-hover:text-white transition">
+        <i data-lucide="upload-cloud" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <h3 class="text-sm font-semibold text-white">Drag & drop photos here to upload</h3>
+        <p class="text-xs text-zinc-400 mt-1">Supports high-res JPG, PNG, WebP up to 25MB each</p>
+      </div>
+      <div>
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 text-zinc-200 text-xs font-medium rounded-md group-hover:bg-zinc-700 transition">
+          Browse Files
+        </span>
+      </div>
+    </div>
+
+    <!-- Upload Progress Indicator -->
+    <div id="uploadProgress" class="hidden mt-4 space-y-2 text-left max-w-md mx-auto">
+      <div class="flex items-center justify-between text-xs text-zinc-300 font-mono">
+        <span id="uploadStatusText">Uploading photos...</span>
+        <span id="uploadPercent">0%</span>
+      </div>
+      <div class="w-full h-2 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800">
+        <div id="progressBar" class="h-full bg-emerald-500 transition-all duration-200" style="width: 0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Studio Toolbar & Curation Controls -->
+  <div class="bg-[#18181b] border border-zinc-800 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+    
+    <!-- Filter Chips -->
+    <div class="flex items-center gap-2">
+      <button onclick="filterPhotos('all')" id="filter-all" class="px-3 py-1.5 bg-white text-zinc-950 font-semibold text-xs rounded-md transition shadow-sm">
+        All Photos (<span id="count-all">{{ total_photos }}</span>)
+      </button>
+      <button onclick="filterPhotos('selected')" id="filter-selected" class="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-medium text-xs rounded-md border border-zinc-800 transition">
+        Selected for Gallery (<span id="count-selected">{{ selected_photos }}</span>)
+      </button>
+    </div>
+
+    <!-- Admin Selection Actions -->
+    {% if is_admin %}
+      <div class="flex items-center gap-2 text-xs">
+        <button onclick="batchSelect('select')" class="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 rounded-md font-medium transition">
+          Select All
+        </button>
+        <button onclick="batchSelect('deselect')" class="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 rounded-md font-medium transition">
+          Deselect All
+        </button>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Photo Grid -->
+  <div id="photoGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+    {% for item in photos_data %}
+      <div data-photo-id="{{ item.photo.id }}" data-selected="{% if item.photo.is_selected %}true{% else %}false{% endif %}" class="photo-card relative group bg-[#18181b] border border-zinc-800 rounded-xl overflow-hidden aspect-square hover:border-zinc-600 transition shadow-sm">
+        
+        <img src="{{ item.thumb_url }}" alt="{{ item.photo.filename }}" loading="lazy" class="w-full h-full object-cover transition transform duration-300 group-hover:scale-105">
+
+        <!-- Selection Checkmark Badge -->
+        <div class="absolute top-2 left-2 z-10">
+          {% if is_admin %}
+            <button onclick="togglePhotoSelection('{{ item.photo.id }}', event)" class="w-7 h-7 rounded-lg flex items-center justify-center transition border shadow {% if item.photo.is_selected %}bg-emerald-500 border-emerald-400 text-zinc-950{% else %}bg-zinc-900/80 border-zinc-700 text-zinc-400 hover:text-white{% endif %}">
+              <i data-lucide="check" class="w-4 h-4"></i>
+            </button>
+          {% else %}
+            {% if item.photo.is_selected %}
+              <span class="w-6 h-6 rounded-md bg-emerald-500 text-zinc-950 flex items-center justify-center text-xs font-bold shadow">
+                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+              </span>
+            {% endif %}
+          {% endif %}
+        </div>
+
+        <!-- Hover Overlay & Actions -->
+        <div onclick="openLightbox('{{ item.original_url }}', '{{ item.photo.filename }}', '{{ item.photo.width }}x{{ item.photo.height }}', '{{ item.photo.uploaded_by.name|default:item.photo.uploaded_by.email }}')" class="absolute inset-0 bg-gradient-to-t from-zinc-950/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition p-3 flex flex-col justify-end cursor-pointer">
+          <p class="text-[11px] font-medium text-white truncate">{{ item.photo.filename }}</p>
+          <p class="text-[10px] text-zinc-400 font-mono">{{ item.photo.width }}×{{ item.photo.height }} • {{ item.photo.uploaded_by.name|default:item.photo.uploaded_by.email }}</p>
+        </div>
+
+      </div>
+    {% empty %}
+      <div class="col-span-full py-16 text-center text-zinc-500">
+        <i data-lucide="image" class="w-10 h-10 mx-auto mb-2 opacity-40"></i>
+        <p class="text-xs">No photos uploaded yet for this event.</p>
+      </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+<!-- Admin Gallery Publishing Drawer / Modal -->
+{% if is_admin %}
+<div id="publishDrawer" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+  <div class="bg-[#18181b] border border-zinc-800 rounded-xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative">
+    
+    <div class="flex items-center justify-between pb-4 border-b border-zinc-800">
+      <div class="flex items-center gap-2">
+        <i data-lucide="globe" class="w-5 h-5 text-emerald-400"></i>
+        <h2 class="font-bold text-base text-white">Publish Client Gallery</h2>
+      </div>
+      <button onclick="togglePublishDrawer()" class="text-zinc-400 hover:text-white">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <form action="{% url 'gallery_publish' pk=event.pk %}" method="post" class="space-y-4">
+      {% csrf_token %}
+      
+      <div>
+        <label class="block text-xs font-medium text-zinc-300 mb-1">Gallery Title</label>
+        <input type="text" name="title" value="{% if gallery %}{{ gallery.title }}{% else %}{{ event.title }}{% endif %}" class="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-md text-white text-xs focus:outline-none focus:border-zinc-500">
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-zinc-300 mb-1">Description / Client Note</label>
+        <textarea name="description" rows="2" class="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-md text-white text-xs focus:outline-none focus:border-zinc-500">{% if gallery %}{{ gallery.description }}{% endif %}</textarea>
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-zinc-300 mb-1">6-Digit Access PIN</label>
+        <input type="text" name="pin" max="999999" placeholder="482917" value="{% if not gallery %}482917{% endif %}" class="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-md text-white text-xs font-mono tracking-widest focus:outline-none focus:border-zinc-500">
+        <p class="text-[11px] text-zinc-500 mt-1">Leave blank to keep existing PIN hash unchanged.</p>
+      </div>
+
+      <div class="p-3 bg-zinc-900 border border-zinc-800 rounded-md flex items-center justify-between">
+        <div class="space-y-0.5">
+          <span class="text-xs font-medium text-white block">Gallery Status</span>
+          <span class="text-[11px] text-zinc-400">Make gallery accessible to customers with PIN</span>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" name="is_published" class="sr-only peer" {% if gallery and gallery.is_published %}checked{% endif %}>
+          <div class="w-11 h-6 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+        </label>
+      </div>
+
+      {% if gallery and gallery.is_published %}
+        <div class="p-3 bg-emerald-950/40 border border-emerald-800/60 rounded-md text-xs text-emerald-300 flex items-center justify-between">
+          <div class="truncate">
+            <span class="text-emerald-400 font-semibold block">Shareable Link:</span>
+            <span class="font-mono text-[11px]">/gallery/{{ gallery.slug }}/</span>
+          </div>
+          <button type="button" onclick="navigator.clipboard.writeText(window.location.origin + '/gallery/{{ gallery.slug }}/'); showToast('Gallery URL copied to clipboard!')" class="p-1.5 bg-emerald-900 hover:bg-emerald-800 text-emerald-200 rounded text-xs transition">
+            Copy Link
+          </button>
+        </div>
+      {% endif %}
+
+      <div class="pt-3 flex items-center justify-end gap-3 border-t border-zinc-800">
+        <button type="button" onclick="togglePublishDrawer()" class="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs text-zinc-300 rounded-md">
+          Cancel
+        </button>
+        <button type="submit" class="px-5 py-2 bg-white text-zinc-950 font-semibold text-xs rounded-md hover:bg-zinc-200 transition">
+          Save Gallery Settings
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endif %}
+
+<!-- Lightbox Modal -->
+<div id="lightbox" class="fixed inset-0 z-50 bg-black/90 hidden flex items-center justify-center p-4">
+  <div class="max-w-4xl w-full flex flex-col items-center relative">
+    <button onclick="closeLightbox()" class="absolute -top-10 right-0 text-zinc-400 hover:text-white">
+      <i data-lucide="x" class="w-6 h-6"></i>
+    </button>
+    <img id="lightboxImg" src="" alt="" class="max-h-[80vh] w-auto object-contain rounded-lg shadow-2xl">
+    <div id="lightboxMeta" class="mt-4 text-center text-xs text-zinc-400 font-mono space-y-1"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const EVENT_ID = "{{ event.id }}";
+  const CSRF_TOKEN = "{{ csrf_token }}";
+
+  function togglePublishDrawer() {
+    const el = document.getElementById('publishDrawer');
+    if (el) el.classList.toggle('hidden');
+  }
+
+  function openLightbox(url, name, meta, uploader) {
+    document.getElementById('lightboxImg').src = url;
+    document.getElementById('lightboxMeta').innerHTML = `
+      <div class="text-white font-sans font-semibold">${name}</div>
+      <div>Resolution: ${meta} • Uploaded by: ${uploader}</div>
+    `;
+    document.getElementById('lightbox').classList.remove('hidden');
+  }
+
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.add('hidden');
+  }
+
+  function filterPhotos(mode) {
+    document.getElementById('filter-all').className = mode === 'all' 
+      ? 'px-3 py-1.5 bg-white text-zinc-950 font-semibold text-xs rounded-md transition shadow-sm'
+      : 'px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-medium text-xs rounded-md border border-zinc-800 transition';
+    
+    document.getElementById('filter-selected').className = mode === 'selected'
+      ? 'px-3 py-1.5 bg-white text-zinc-950 font-semibold text-xs rounded-md transition shadow-sm'
+      : 'px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-medium text-xs rounded-md border border-zinc-800 transition';
+
+    document.querySelectorAll('.photo-card').forEach(card => {
+      if (mode === 'selected') {
+        if (card.getAttribute('data-selected') === 'true') {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      } else {
+        card.classList.remove('hidden');
+      }
+    });
+  }
+
+  async function togglePhotoSelection(photoId, event) {
+    event.stopPropagation();
+    try {
+      const res = await fetch(`/api/events/${EVENT_ID}/photos/select/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': CSRF_TOKEN,
+        },
+        body: JSON.stringify({ photo_ids: [photoId], action: 'toggle' })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        location.reload();
+      } else {
+        showToast(data.error || 'Failed to update photo selection.', true);
+      }
+    } catch (err) {
+      showToast('Error communicating with server.', true);
+    }
+  }
+
+  async function batchSelect(action) {
+    const photoIds = Array.from(document.querySelectorAll('.photo-card')).map(el => el.getAttribute('data-photo-id'));
+    if (!photoIds.length) return;
+    try {
+      const res = await fetch(`/api/events/${EVENT_ID}/photos/select/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': CSRF_TOKEN,
+        },
+        body: JSON.stringify({ photo_ids: photoIds, action: action })
+      });
+      if (res.ok) {
+        location.reload();
+      }
+    } catch (err) {
+      showToast('Error updating selection.', true);
+    }
+  }
+
+  // Upload Handling
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+
+  dropzone.addEventListener('click', () => fileInput.click());
+
+  dropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropzone.classList.add('border-zinc-500', 'bg-zinc-900/50');
+  });
+
+  dropzone.addEventListener('dragleave', () => {
+    dropzone.classList.remove('border-zinc-500', 'bg-zinc-900/50');
+  });
+
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('border-zinc-500', 'bg-zinc-900/50');
+    if (e.dataTransfer.files.length) {
+      uploadFiles(e.dataTransfer.files);
+    }
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) {
+      uploadFiles(fileInput.files);
+    }
+  });
+
+  function uploadFiles(files) {
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+      formData.append('photos', files[i]);
+    }
+
+    const progressDiv = document.getElementById('uploadProgress');
+    const progressBar = document.getElementById('progressBar');
+    const percentText = document.getElementById('uploadPercent');
+    progressDiv.classList.remove('hidden');
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `/api/events/${EVENT_ID}/photos/upload/`, true);
+    xhr.setRequestHeader('X-CSRFToken', CSRF_TOKEN);
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const pct = Math.round((e.loaded / e.total) * 100);
+        progressBar.style.width = pct + '%';
+        percentText.innerText = pct + '%';
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status === 201) {
+        location.reload();
+      } else {
+        const err = JSON.parse(xhr.responseText);
+        showToast(err.error || 'Upload failed.', true);
+        progressDiv.classList.add('hidden');
+      }
+    };
+
+    xhr.send(formData);
+  }
+</script>
+{% endblock %}

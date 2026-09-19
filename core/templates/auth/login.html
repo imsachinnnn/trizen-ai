@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Login - TrizenAI Photo Sharing{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto my-12">
+  <div class="bg-[#18181b] border border-zinc-800 rounded-xl p-8 shadow-xl">
+    
+    <div class="text-center mb-8">
+      <div class="w-12 h-12 rounded-xl bg-zinc-900 border border-zinc-700 flex items-center justify-center mx-auto mb-4 text-white">
+        <i data-lucide="lock" class="w-6 h-6"></i>
+      </div>
+      <h1 class="text-xl font-bold text-white tracking-tight">Sign in to your account</h1>
+      <p class="text-xs text-zinc-400 mt-1">Access assigned photography events and studio tools</p>
+    </div>
+
+    {% if form.non_field_errors %}
+      <div class="p-3 mb-6 bg-red-950/60 border border-red-800 rounded-md text-xs text-red-300">
+        {{ form.non_field_errors.0 }}
+      </div>
+    {% endif %}
+
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+      <div>
+        <label class="block text-xs font-medium text-zinc-300 mb-1.5">Email Address</label>
+        {{ form.email }}
+        {% if form.email.errors %}
+          <p class="text-[11px] text-red-400 mt-1">{{ form.email.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-zinc-300 mb-1.5">Password</label>
+        {{ form.password }}
+        {% if form.password.errors %}
+          <p class="text-[11px] text-red-400 mt-1">{{ form.password.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <button type="submit" class="w-full py-2.5 px-4 bg-white text-zinc-950 font-semibold text-xs rounded-md hover:bg-zinc-200 transition flex items-center justify-center gap-2">
+        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        <span>Sign In</span>
+      </button>
+    </form>
+
+    <div class="mt-6 pt-6 border-t border-zinc-800 text-center text-xs text-zinc-500">
+      <span>Don't have an account?</span>
+      <a href="{% url 'register' %}" class="text-zinc-200 hover:underline font-medium ml-1">Create Account</a>
+    </div>
+
+    <div class="mt-4 p-3 bg-zinc-900/80 border border-zinc-800/80 rounded-md text-[11px] text-zinc-400 space-y-1">
+      <div class="font-semibold text-zinc-300 flex items-center gap-1.5">
+        <i data-lucide="key" class="w-3.5 h-3.5 text-zinc-500"></i>
+        <span>Demo Credentials</span>
+      </div>
+      <div>Admin: <code class="text-zinc-200">admin@trizen.com</code> / <code class="text-zinc-200">AdminPass123!</code></div>
+      <div>Team: <code class="text-zinc-200">photographer@trizen.com</code> / <code class="text-zinc-200">TeamPass123!</code></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
