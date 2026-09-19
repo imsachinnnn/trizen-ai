@@ -132,6 +132,12 @@ class GalleryVerifyPINAPIView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        if gallery.is_expired():
+            return Response(
+                {"error": "This gallery link has expired and is no longer accessible."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         submitted_pin = request.data.get('pin', '').strip()
         if not submitted_pin:
             return Response(

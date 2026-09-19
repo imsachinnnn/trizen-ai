@@ -15,7 +15,24 @@
 </head>
 <body class="bg-[#09090b] text-zinc-100 min-h-screen flex flex-col antialiased selection:bg-zinc-800 selection:text-white">
 
-  {% if is_locked %}
+  {% if is_expired %}
+    <!-- Expired Gallery Notice Screen -->
+    <div class="flex-1 flex items-center justify-center p-4">
+      <div class="max-w-sm w-full bg-[#18181b] border border-zinc-800 rounded-2xl p-8 shadow-2xl text-center space-y-6">
+        <div class="w-12 h-12 rounded-xl bg-red-950/80 border border-red-800 flex items-center justify-center mx-auto text-red-400">
+          <i data-lucide="clock-alert" class="w-6 h-6"></i>
+        </div>
+        <div class="space-y-2">
+          <h1 class="text-xl font-bold text-white tracking-tight">{{ gallery.title }}</h1>
+          <p class="text-xs text-red-400 font-medium">Gallery Access Link Expired</p>
+          <p class="text-xs text-zinc-400">This client gallery expired on {{ gallery.expires_at }} and is no longer publicly accessible. Please contact your event photography team for access.</p>
+        </div>
+        <div class="pt-4 border-t border-zinc-800 text-[11px] text-zinc-500">
+          Private Client Gallery • TrizenAI Security
+        </div>
+      </div>
+    </div>
+  {% elif is_locked %}
     <!-- PIN Entry Screen for Customer -->
     <div class="flex-1 flex items-center justify-center p-4">
       <div id="pinContainer" class="max-w-sm w-full bg-[#18181b] border border-zinc-800 rounded-2xl p-8 shadow-2xl text-center space-y-6">

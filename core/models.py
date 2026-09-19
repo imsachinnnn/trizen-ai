@@ -1,6 +1,7 @@
 import uuid
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.utils import timezone
 
 
 class User(AbstractUser):
@@ -80,6 +81,9 @@ class Photo(models.Model):
         return f"{self.filename} ({self.event.title})"
 
 
+from django.utils import timezone
+
+
 class Gallery(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     event = models.OneToOneField(Event, on_delete=models.CASCADE, related_name='gallery')
@@ -89,8 +93,14 @@ class Gallery(models.Model):
     description = models.TextField(blank=True)
     is_published = models.BooleanField(default=False)
     published_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True, help_text="Optional expiration timestamp for customer gallery access.")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def is_expired(self):
+        if self.expires_at and timezone.now() > self.expires_at:
+            return True
+        return False
 
     def __str__(self):
         return f"Gallery for {self.event.title} ({'Published' if self.is_published else 'Draft'})"

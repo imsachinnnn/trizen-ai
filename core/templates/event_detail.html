@@ -146,19 +146,25 @@
   <!-- Studio Toolbar & Curation Controls -->
   <div class="bg-[#18181b] border border-zinc-800 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
     
-    <!-- Filter Chips -->
-    <div class="flex items-center gap-2">
+    <!-- Filter Chips & Search -->
+    <div class="flex flex-wrap items-center gap-2 flex-1">
       <button onclick="filterPhotos('all')" id="filter-all" class="px-3 py-1.5 bg-white text-zinc-950 font-semibold text-xs rounded-md transition shadow-sm">
         All Photos (<span id="count-all">{{ total_photos }}</span>)
       </button>
       <button onclick="filterPhotos('selected')" id="filter-selected" class="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-medium text-xs rounded-md border border-zinc-800 transition">
         Selected for Gallery (<span id="count-selected">{{ selected_photos }}</span>)
       </button>
+
+      <!-- Live Search Bar -->
+      <div class="relative min-w-[200px] ml-auto sm:ml-2">
+        <input type="text" id="photoSearch" oninput="searchPhotos()" placeholder="Search photo filename..." class="w-full pl-8 pr-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-md text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500">
+        <i data-lucide="search" class="w-3.5 h-3.5 text-zinc-500 absolute left-2.5 top-2.5"></i>
+      </div>
     </div>
 
     <!-- Admin Selection Actions -->
     {% if is_admin %}
-      <div class="flex items-center gap-2 text-xs">
+      <div class="flex items-center gap-2 text-xs shrink-0">
         <button onclick="batchSelect('select')" class="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 rounded-md font-medium transition">
           Select All
         </button>
@@ -249,6 +255,12 @@
         <label class="block text-xs font-medium text-zinc-300 mb-1">6-Digit Access PIN (Exactly 6 Digits)</label>
         <input type="text" name="pin" id="publishPinInput" maxlength="6" minlength="6" pattern="\d{6}" inputmode="numeric" placeholder="482917" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6)" value="{% if not gallery %}482917{% endif %}" class="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-md text-white text-xs font-mono tracking-widest focus:outline-none focus:border-zinc-500">
         <p class="text-[11px] text-zinc-500 mt-1">Must be exactly 6 numeric digits. Leave blank to keep existing PIN.</p>
+      </div>
+
+      <div>
+        <label class="block text-xs font-medium text-zinc-300 mb-1">Gallery Expiration Date (Optional)</label>
+        <input type="datetime-local" name="expires_at" value="{% if gallery and gallery.expires_at %}{{ gallery.expires_at|date:'Y-m-d\TH:i' }}{% endif %}" class="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-md text-white text-xs focus:outline-none focus:border-zinc-500">
+        <p class="text-[11px] text-zinc-500 mt-1">Optional. Customer access link will automatically expire after this time.</p>
       </div>
 
       <div class="p-3 bg-zinc-900 border border-zinc-800 rounded-md flex items-center justify-between">
@@ -350,6 +362,18 @@
       `Are you sure you want to remove ${memberName} from this event?`,
       () => formElement.submit()
     );
+  }
+
+  function searchPhotos() {
+    const query = document.getElementById('photoSearch').value.toLowerCase().trim();
+    document.querySelectorAll('.photo-card').forEach(card => {
+      const filename = card.querySelector('p')?.innerText.toLowerCase() || '';
+      if (!query || filename.includes(query)) {
+        card.classList.remove('hidden');
+      } else {
+        card.classList.add('hidden');
+      }
+    });
   }
 
   // Validate Publish Gallery PIN Input

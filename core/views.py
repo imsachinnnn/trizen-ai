@@ -216,6 +216,14 @@ def gallery_publish_view(request, pk):
         if Gallery.objects.filter(slug=slug).exclude(event=event).exists():
             slug = f"{slug}-{str(event.id)[:4]}"
 
+        expires_at_str = request.POST.get('expires_at', '').strip()
+        expires_at = None
+        if expires_at_str:
+            try:
+                expires_at = timezone.datetime.fromisoformat(expires_at_str)
+            except Exception:
+                pass
+
         if not gallery:
             if not pin:
                 pin = "482917"  # Default fallback demo PIN if empty
@@ -227,11 +235,13 @@ def gallery_publish_view(request, pk):
                 pin_hash=make_password(pin),
                 is_published=is_published,
                 published_at=timezone.now() if is_published else None,
+                expires_at=expires_at,
             )
         else:
             gallery.title = title
             gallery.description = description
             gallery.slug = slug
+            gallery.expires_at = expires_at
             if pin:
                 gallery.pin_hash = make_password(pin)
             if is_published and not gallery.is_published:
@@ -250,6 +260,13 @@ def public_gallery_view(request, slug):
     # If gallery is not published, return 404 for unauthenticated customers
     if not gallery.is_published and not is_admin_user(request.user):
         raise Http404("Gallery not found or is currently unpublished.")
+
+    # Expiration check
+    if gallery.is_expired() and not is_admin_user(request.user):
+        return render(request, 'gallery.html', {
+            'gallery': gallery,
+            'is_expired': True,
+        })
 
     session_key = f'gallery_unlocked_{slug}'
     is_unlocked = request.session.get(session_key, False) or is_admin_user(request.user)
