@@ -200,6 +200,12 @@ def gallery_publish_view(request, pk):
         pin = request.POST.get('pin', '').strip()
         is_published = request.POST.get('is_published') == 'on'
 
+        # Validate 6-digit numeric PIN
+        if pin:
+            if len(pin) != 6 or not pin.isdigit():
+                messages.error(request, "Access PIN must be exactly 6 numeric digits (e.g. 482917).")
+                return redirect('event_detail', pk=pk)
+
         # Sync event title as well so Dashboard, Studio, and Gallery reflect the updated title
         event.title = title
         event.save()

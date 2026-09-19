@@ -77,7 +77,7 @@
             <form action="{% url 'event_member_remove' pk=event.pk %}" method="post" class="inline">
               {% csrf_token %}
               <input type="hidden" name="user_id" value="{{ member.id }}">
-              <button type="submit" class="text-zinc-500 hover:text-red-400 p-0.5 ml-1 transition" title="Remove member from event">
+              <button type="button" onclick="confirmMemberRemove(this.form, '{{ member.name|default:member.email }}')" class="text-zinc-500 hover:text-red-400 p-0.5 ml-1 transition" title="Remove member from event">
                 <i data-lucide="x" class="w-3.5 h-3.5"></i>
               </button>
             </form>
@@ -246,9 +246,9 @@
       </div>
 
       <div>
-        <label class="block text-xs font-medium text-zinc-300 mb-1">6-Digit Access PIN</label>
-        <input type="text" name="pin" max="999999" placeholder="482917" value="{% if not gallery %}482917{% endif %}" class="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-md text-white text-xs font-mono tracking-widest focus:outline-none focus:border-zinc-500">
-        <p class="text-[11px] text-zinc-500 mt-1">Leave blank to keep existing PIN hash unchanged.</p>
+        <label class="block text-xs font-medium text-zinc-300 mb-1">6-Digit Access PIN (Exactly 6 Digits)</label>
+        <input type="text" name="pin" id="publishPinInput" maxlength="6" minlength="6" pattern="\d{6}" inputmode="numeric" placeholder="482917" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6)" value="{% if not gallery %}482917{% endif %}" class="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-md text-white text-xs font-mono tracking-widest focus:outline-none focus:border-zinc-500">
+        <p class="text-[11px] text-zinc-500 mt-1">Must be exactly 6 numeric digits. Leave blank to keep existing PIN.</p>
       </div>
 
       <div class="p-3 bg-zinc-900 border border-zinc-800 rounded-md flex items-center justify-between">
@@ -288,6 +288,27 @@
 </div>
 {% endif %}
 
+<!-- Custom Confirmation Modal -->
+<div id="confirmModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+  <div class="bg-[#18181b] border border-zinc-800 rounded-xl max-w-sm w-full p-6 text-center space-y-4 shadow-2xl">
+    <div class="w-12 h-12 rounded-xl bg-red-950/80 border border-red-800 flex items-center justify-center mx-auto text-red-400">
+      <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+    </div>
+    <div>
+      <h3 id="confirmModalTitle" class="text-base font-bold text-white">Confirm Action</h3>
+      <p id="confirmModalMessage" class="text-xs text-zinc-400 mt-1">Are you sure you want to proceed?</p>
+    </div>
+    <div class="flex items-center justify-end gap-3 pt-2">
+      <button type="button" onclick="closeConfirmModal()" class="w-1/2 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-medium text-zinc-300 rounded-md transition">
+        Cancel
+      </button>
+      <button type="button" id="confirmActionBtn" class="w-1/2 py-2 bg-red-600 hover:bg-red-500 text-white font-semibold text-xs rounded-md transition">
+        Delete
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Lightbox Modal -->
 <div id="lightbox" class="fixed inset-0 z-50 bg-black/90 hidden flex items-center justify-center p-4">
   <div class="max-w-4xl w-full flex flex-col items-center relative">
@@ -302,6 +323,50 @@
 
 {% block scripts %}
 <script>
+  let confirmCallback = null;
+
+  function openConfirmModal(title, message, onConfirm) {
+    document.getElementById('confirmModalTitle').innerText = title;
+    document.getElementById('confirmModalMessage').innerText = message;
+    confirmCallback = onConfirm;
+    document.getElementById('confirmModal').classList.remove('hidden');
+  }
+
+  function closeConfirmModal() {
+    document.getElementById('confirmModal').classList.add('hidden');
+    confirmCallback = null;
+  }
+
+  document.getElementById('confirmActionBtn').addEventListener('click', () => {
+    if (confirmCallback) {
+      confirmCallback();
+    }
+    closeConfirmModal();
+  });
+
+  function confirmMemberRemove(formElement, memberName) {
+    openConfirmModal(
+      "Remove Team Member",
+      `Are you sure you want to remove ${memberName} from this event?`,
+      () => formElement.submit()
+    );
+  }
+
+  // Validate Publish Gallery PIN Input
+  const publishForm = document.querySelector('form[action*="gallery/publish"]');
+  if (publishForm) {
+    publishForm.addEventListener('submit', (e) => {
+      const pinInput = document.getElementById('publishPinInput');
+      if (pinInput) {
+        const pinVal = pinInput.value.trim();
+        if (pinVal && (pinVal.length !== 6 || !/^\d{6}$/.test(pinVal))) {
+          e.preventDefault();
+          showToast('Access PIN must be exactly 6 numeric digits (e.g. 482917).', true);
+        }
+      }
+    });
+  }
+// Continued in main script block below
   const EVENT_ID = "{{ event.id }}";
   const CSRF_TOKEN = "{{ csrf_token }}";
 
@@ -347,26 +412,31 @@
 
   async function deletePhoto(photoId, event) {
     event.stopPropagation();
-    if (!confirm("Are you sure you want to delete this photo from the event?")) return;
-    try {
-      const res = await fetch(`/api/events/${EVENT_ID}/photos/delete/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': CSRF_TOKEN,
-        },
-        body: JSON.stringify({ photo_ids: [photoId] })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        showToast('Photo deleted successfully.');
-        setTimeout(() => location.reload(), 500);
-      } else {
-        showToast(data.error || 'Failed to delete photo.', true);
+    openConfirmModal(
+      "Delete Photo",
+      "Are you sure you want to permanently delete this photo from the event?",
+      async () => {
+        try {
+          const res = await fetch(`/api/events/${EVENT_ID}/photos/delete/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': CSRF_TOKEN,
+            },
+            body: JSON.stringify({ photo_ids: [photoId] })
+          });
+          const data = await res.json();
+          if (res.ok) {
+            showToast('Photo deleted successfully.');
+            setTimeout(() => location.reload(), 500);
+          } else {
+            showToast(data.error || 'Failed to delete photo.', true);
+          }
+        } catch (err) {
+          showToast('Error deleting photo.', true);
+        }
       }
-    } catch (err) {
-      showToast('Error deleting photo.', true);
-    }
+    );
   }
 
   async function togglePhotoSelection(photoId, event) {
