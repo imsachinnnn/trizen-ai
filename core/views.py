@@ -1,4 +1,5 @@
 import os
+import random
 import mimetypes
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout
@@ -125,6 +126,7 @@ def event_detail_view(request, pk):
         available_users = User.objects.exclude(id__in=assigned_user_ids)
 
     gallery_form = GalleryForm(instance=gallery) if is_admin else None
+    random_pin = f"{random.randint(100000, 999999)}"
 
     return render(request, 'event_detail.html', {
         'event': event,
@@ -133,6 +135,7 @@ def event_detail_view(request, pk):
         'selected_photos': sum(1 for p in photos if p.is_selected),
         'gallery': gallery,
         'gallery_form': gallery_form,
+        'random_pin': random_pin,
         'is_admin': is_admin,
         'assigned_members': event.assigned_members.all(),
         'available_users': available_users,
@@ -210,7 +213,7 @@ def gallery_publish_view(request, pk):
 
         if not gallery:
             if not pin:
-                pin = "482917"  # Default fallback demo PIN if empty
+                pin = f"{random.randint(100000, 999999)}"  # Generate random 6-digit PIN if empty
             gallery = Gallery(
                 event=event,
                 title=title,
