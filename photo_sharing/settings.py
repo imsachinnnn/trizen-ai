@@ -55,10 +55,20 @@ WSGI_APPLICATION = 'photo_sharing.wsgi.application'
 AUTH_USER_MODEL = 'core.User'
 
 # Database Configuration
-# Set USE_POSTGRES=True to enable PostgreSQL / Supabase in production
+# Supports DATABASE_URL connection string (e.g., Supabase Postgres), individual DB env vars, or local SQLite fallback
+DATABASE_URL = os.getenv('DATABASE_URL')
 USE_POSTGRES = os.getenv('USE_POSTGRES', 'False').lower() in ('true', '1', 't')
 
-if USE_POSTGRES:
+if DATABASE_URL:
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=os.getenv('DB_SSL_REQUIRE', 'False').lower() in ('true', '1', 't'),
+        )
+    }
+elif USE_POSTGRES:
     DATABASES = {
         'default': {
             'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
@@ -76,6 +86,7 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+
 
 
 AUTH_PASSWORD_VALIDATORS = [
