@@ -1,6 +1,7 @@
 import os
 import random
 import mimetypes
+from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
@@ -307,7 +308,16 @@ def private_media_serve_view(request, photo_id, photo_type):
         return HttpResponseForbidden("Unauthorized: Direct object access denied.")
 
     target_file = photo.thumbnail if photo_type == 'thumb' and photo.thumbnail else photo.image
-    if not target_file or not os.path.exists(target_file.path):
+    if not target_file:
+        raise Http404("Photo file reference not found.")
+
+    if getattr(settings, 'USE_R2_STORAGE', False):
+        try:
+            return redirect(target_file.url)
+        except Exception:
+            pass
+
+    if not hasattr(target_file, 'path') or not os.path.exists(target_file.path):
         raise Http404("Photo binary file not found.")
 
     content_type, _ = mimetypes.guess_type(target_file.path)
