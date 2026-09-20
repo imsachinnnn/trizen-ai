@@ -112,33 +112,36 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Cloudflare R2 Object Storage Configuration
-r2_bucket = os.getenv('R2_BUCKET_NAME') or os.getenv('AWS_STORAGE_BUCKET_NAME')
-USE_R2_STORAGE = os.getenv('USE_R2_STORAGE', 'True' if r2_bucket else 'False').lower() in ('true', '1', 't')
-if USE_R2_STORAGE:
-    AWS_ACCESS_KEY_ID = os.getenv('R2_ACCESS_KEY_ID') or os.getenv('AWS_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = os.getenv('R2_SECRET_ACCESS_KEY') or os.getenv('AWS_SECRET_ACCESS_KEY')
-    AWS_STORAGE_BUCKET_NAME = r2_bucket
+# Cloudflare R2 Object Storage Configuration (Exclusive Storage Backend)
+AWS_ACCESS_KEY_ID = os.getenv('R2_ACCESS_KEY_ID') or os.getenv('AWS_ACCESS_KEY_ID', 'dummy_r2_key')
+AWS_SECRET_ACCESS_KEY = os.getenv('R2_SECRET_ACCESS_KEY') or os.getenv('AWS_SECRET_ACCESS_KEY', 'dummy_r2_secret')
+AWS_STORAGE_BUCKET_NAME = os.getenv('R2_BUCKET_NAME') or os.getenv('AWS_STORAGE_BUCKET_NAME', 'trizen-r2-bucket')
 
-    
-    r2_account_id = os.getenv('R2_ACCOUNT_ID')
-    if r2_account_id:
-        AWS_S3_ENDPOINT_URL = f"https://{r2_account_id}.r2.cloudflarestorage.com"
-    else:
-        AWS_S3_ENDPOINT_URL = os.getenv('R2_ENDPOINT_URL') or os.getenv('AWS_S3_ENDPOINT_URL')
-        
-    AWS_S3_REGION_NAME = os.getenv('R2_REGION_NAME', 'auto')
-    AWS_DEFAULT_ACL = None
-    AWS_QUERYSTRING_AUTH = True  # Enable presigned temporary URLs
-    AWS_QUERYSTRING_EXPIRE = 900  # 15 minute temporary URL expiry
-    STORAGES = {
-        "default": {
-            "BACKEND": "storages.backends.s3.S3Storage",
-        },
-        "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-        },
-    }
+r2_account_id = os.getenv('R2_ACCOUNT_ID')
+if r2_account_id:
+    AWS_S3_ENDPOINT_URL = f"https://{r2_account_id}.r2.cloudflarestorage.com"
+else:
+    AWS_S3_ENDPOINT_URL = os.getenv('R2_ENDPOINT_URL') or os.getenv('AWS_S3_ENDPOINT_URL', 'https://r2.cloudflarestorage.com')
+
+AWS_S3_REGION_NAME = os.getenv('R2_REGION_NAME', 'auto')
+AWS_DEFAULT_ACL = None
+AWS_QUERYSTRING_AUTH = True  # Enable presigned temporary URLs
+AWS_QUERYSTRING_EXPIRE = 900  # 15 minute temporary URL expiry
+AWS_S3_SIGNATURE_VERSION = 's3v4'
+
+r2_public_domain = os.getenv('R2_PUBLIC_DOMAIN')
+if r2_public_domain:
+    AWS_S3_CUSTOM_DOMAIN = r2_public_domain.replace('https://', '').replace('http://', '').rstrip('/')
+
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3.S3Storage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
 
 # Authentication URLs
 LOGIN_URL = '/login/'

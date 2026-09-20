@@ -1,6 +1,6 @@
 import io
 from PIL import Image
-from django.test import TestCase, Client
+from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth.hashers import make_password
@@ -8,7 +8,12 @@ from django.utils import timezone
 from core.models import User, Event, EventMember, Photo, Gallery
 
 
+@override_settings(STORAGES={
+    "default": {"BACKEND": "django.core.files.storage.InMemoryStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+})
 class PhotoSharingTestCase(TestCase):
+
     def setUp(self):
         self.client = Client()
 
@@ -185,10 +190,10 @@ class PhotoSharingTestCase(TestCase):
         res_unauth = self.client.get(url)
         self.assertEqual(res_unauth.status_code, 403)
 
-        # Authenticated assigned team member access -> 200 OK
+        # Authenticated assigned team member access -> 200 OK or 302 Redirect to R2 location
         self.client.login(username="team_a@trizen.com", password="TeamPass123!")
         res_auth = self.client.get(url)
-        self.assertEqual(res_auth.status_code, 200)
+        self.assertIn(res_auth.status_code, [200, 302])
 
     # 10. Photo Deletion Authorization Test (Admin Only)
     def test_admin_can_delete_photo_and_team_member_forbidden(self):

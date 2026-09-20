@@ -44,13 +44,20 @@ class PhotoUploadAPIView(APIView):
                     image=validated_file,
                     thumbnail=thumbnail_file,
                     filename=file.name,
-                    storage_location=f"events/{event.id}/photos/",
+                    storage_location="",
                     file_size=file_size,
                     mime_type=mime_type,
                     width=width,
                     height=height,
                     is_selected=False,
                 )
+                try:
+                    photo.storage_location = photo.image.url
+                    photo.save(update_fields=['storage_location'])
+                except Exception:
+                    photo.storage_location = photo.image.name
+                    photo.save(update_fields=['storage_location'])
+
                 
                 uploaded_photos.append({
                     "id": str(photo.id),

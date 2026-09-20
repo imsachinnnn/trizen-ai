@@ -59,17 +59,17 @@ def process_and_validate_image(uploaded_file):
 
 def get_signed_media_url(photo, is_thumbnail=False, request=None):
     """
-    Generates a secure temporary URL for an image.
-    In R2 production, uses presigned URL.
-    In local dev, uses Django's authorized private media serving view.
+    Returns the Cloudflare R2 object storage URL for an image.
     """
-    if getattr(settings, 'USE_R2_STORAGE', False):
-        target_file = photo.thumbnail if (is_thumbnail and photo.thumbnail) else photo.image
+    target_file = photo.thumbnail if (is_thumbnail and photo.thumbnail) else photo.image
+    if target_file:
         try:
             return target_file.url
         except Exception:
             pass
+    if photo.storage_location and photo.storage_location.startswith(('http://', 'https://')):
+        return photo.storage_location
 
-    # Local development private serving endpoint
     photo_type = 'thumb' if is_thumbnail else 'original'
     return f"/media/private/{photo.id}/{photo_type}/"
+
