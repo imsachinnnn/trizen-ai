@@ -11,7 +11,7 @@ from django.utils.text import slugify
 from django.contrib import messages
 
 from .models import User, Event, EventMember, Photo, Gallery
-from .forms import LoginForm, RegisterForm, EventForm, GalleryForm
+from .forms import LoginForm, EventForm, GalleryForm
 from .permissions import is_admin_user, is_assigned_to_event, admin_required
 from .utils import get_signed_media_url
 
@@ -30,22 +30,6 @@ def login_view(request):
     else:
         form = LoginForm()
     return render(request, 'auth/login.html', {'form': form})
-
-
-def register_view(request):
-    if request.user.is_authenticated:
-        return redirect('dashboard')
-    
-    if request.method == 'POST':
-        form = RegisterForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            messages.success(request, "Account created successfully!")
-            return redirect('dashboard')
-    else:
-        form = RegisterForm()
-    return render(request, 'auth/register.html', {'form': form})
 
 
 def logout_view(request):
