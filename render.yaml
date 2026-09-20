@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: trizen-photo-sharing
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn photo_sharing.wsgi:application"
