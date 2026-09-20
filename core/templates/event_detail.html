@@ -273,12 +273,13 @@
 
       {% if gallery and gallery.is_published %}
         <div class="p-3 bg-emerald-950/40 border border-emerald-800/60 rounded-md text-xs text-emerald-300 flex items-center justify-between">
-          <div class="truncate">
-            <span class="text-emerald-400 font-semibold block">Shareable Link:</span>
-            <span class="font-mono text-[11px]">/gallery/{{ gallery.slug }}/</span>
+          <div class="flex items-center gap-2 truncate">
+            <i data-lucide="globe" class="w-4 h-4 text-emerald-400"></i>
+            <span class="font-medium text-emerald-200">Gallery Published & Live</span>
           </div>
-          <button type="button" onclick="navigator.clipboard.writeText(window.location.origin + '/gallery/{{ gallery.slug }}/'); showToast('Gallery URL copied to clipboard!')" class="p-1.5 bg-emerald-900 hover:bg-emerald-800 text-emerald-200 rounded text-xs transition">
-            Copy Link
+          <button type="button" onclick="navigator.clipboard.writeText(window.location.origin + '/gallery/{{ gallery.slug }}/'); showToast('Gallery link copied to clipboard!')" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 text-white font-medium rounded text-xs transition shadow-sm">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span>Copy Link</span>
           </button>
         </div>
       {% endif %}
