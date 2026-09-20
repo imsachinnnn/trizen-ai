@@ -2,7 +2,6 @@ import io
 import os
 from PIL import Image
 from django.core.files.base import ContentFile
-from django.conf import settings
 
 
 ALLOWED_MIME_TYPES = {

@@ -1,4 +1,3 @@
-import os
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.hashers import check_password
 from rest_framework.views import APIView
