@@ -112,14 +112,20 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Cloudflare R2 / AWS S3 Configuration
+# Cloudflare R2 Object Storage Configuration
 USE_R2_STORAGE = os.getenv('USE_R2_STORAGE', 'False').lower() in ('true', '1', 't')
 if USE_R2_STORAGE:
-    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-    AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
-    AWS_S3_ENDPOINT_URL = os.getenv('AWS_S3_ENDPOINT_URL')
-    AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'auto')
+    AWS_ACCESS_KEY_ID = os.getenv('R2_ACCESS_KEY_ID') or os.getenv('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.getenv('R2_SECRET_ACCESS_KEY') or os.getenv('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = os.getenv('R2_BUCKET_NAME') or os.getenv('AWS_STORAGE_BUCKET_NAME')
+    
+    r2_account_id = os.getenv('R2_ACCOUNT_ID')
+    if r2_account_id:
+        AWS_S3_ENDPOINT_URL = f"https://{r2_account_id}.r2.cloudflarestorage.com"
+    else:
+        AWS_S3_ENDPOINT_URL = os.getenv('R2_ENDPOINT_URL') or os.getenv('AWS_S3_ENDPOINT_URL')
+        
+    AWS_S3_REGION_NAME = os.getenv('R2_REGION_NAME', 'auto')
     AWS_DEFAULT_ACL = None
     AWS_QUERYSTRING_AUTH = True  # Enable presigned temporary URLs
     AWS_QUERYSTRING_EXPIRE = 900  # 15 minute temporary URL expiry
