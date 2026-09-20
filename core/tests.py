@@ -46,7 +46,7 @@ class PhotoSharingTestCase(TestCase):
 
         # 4. Create Event and assign Team Member A
         self.event = Event.objects.create(
-            title="Arjun & Priya Wedding",
+            title="Vijay and Rashmika's Wedding",
             description="Wedding ceremony photos",
             created_by=self.admin_user,
         )
@@ -61,12 +61,12 @@ class PhotoSharingTestCase(TestCase):
             "sample.jpg", img_bytes.getvalue(), content_type="image/jpeg"
         )
 
-        # 6. Create Published Gallery with PIN 482917
+        # 6. Create Published Gallery with PIN 123456
         self.gallery = Gallery.objects.create(
             event=self.event,
-            slug="arjun-priya-wedding",
-            pin_hash=make_password("482917"),
-            title="Arjun & Priya Wedding",
+            slug="vijays-wedding",
+            pin_hash=make_password("123456"),
+            title="Vijay and Rashmika's Wedding",
             is_published=True,
             published_at=timezone.now(),
         )
@@ -160,10 +160,10 @@ class PhotoSharingTestCase(TestCase):
 
     # 7. PIN Verification Correct PIN Test
     def test_gallery_pin_verification_correct_pin(self):
-        # Submit correct PIN 482917
+        # Submit correct PIN 123456
         res_verify = self.client.post(
             reverse("api_gallery_verify_pin", kwargs={"slug": self.gallery.slug}),
-            {"pin": "482917"},
+            {"pin": "123456"},
             content_type="application/json"
         )
         self.assertEqual(res_verify.status_code, 200)
